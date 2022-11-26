@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 
 import numpy as np
 from numpy import ndarray
@@ -23,7 +23,7 @@ def o_df(x_e: ndarray):
 
 
 def mse(tar: ndarray, out: ndarray):
-    return (tar - out) ** 2 / out.size
+    return np.sum((tar - out) ** 2) / out.size
 
 
 class MLP:
@@ -43,7 +43,7 @@ class MLP:
 
         return self.l_o
 
-    def train(self, batch: List[(ndarray, ndarray)], epoch_cnt: int = 100, lr0: float = 0.01):
+    def train(self, batch: List[Any], epoch_cnt: int = 100, lr0: float = 0.01):
         for epoch_idx in range(epoch_cnt):
             lr = (epoch_cnt - epoch_idx) * lr0
 
@@ -53,16 +53,16 @@ class MLP:
             for inp, target_out in batch:
                 out = self.infer_one(inp)
 
-                o_e = (out - target_out) * o_df(out)
-                dw_ho += np.dot(o_e[np.newaxis].T, self.l_h[np.newaxis])
+                o_e = (out - target_out) * o_df(self.l_o)
+                dw_ho += np.dot(self.l_h[np.newaxis].T, o_e[np.newaxis])
 
-                h_e = np.dot(o_e, self.w_ho.T) * h_df(o_e)
-                dw_ih += np.dot(h_e[np.newaxis].T, self.l_inp[np.newaxis])
+                h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
+                dw_ih += np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
 
-    def test(self, batch: List[(ndarray, ndarray)]):
+    def test(self, batch: List[Any]):
         error = 0
 
         for inp, target_out in batch:
@@ -70,7 +70,7 @@ class MLP:
             error += mse(target_out, out)
 
         error /= len(batch)
-        print(f'{error=}')
+        print(f'mse: {error}')
 
         return error
 
@@ -78,9 +78,9 @@ class MLP:
 if __name__ == '__main__':
     mlp = MLP()
     batch = get_batch(ns_clstr=[2, 2], cluster_std=0.04, n_features=mlp.l_inp.size)
-    mlp.test(batch)
+    mse_start = mlp.test(batch)
 
-    mlp.train(batch=batch, epoch_cnt=100, lr0=0.01)
-    mlp.test(batch)
+    mlp.train(batch=batch, epoch_cnt=100, lr0=0.04)
+    mse_trained = mlp.test(batch)
 
-    print(mlp.l_o)
+    print(f'{mse_start / mse_trained if mse_trained > 0 else 0}')
