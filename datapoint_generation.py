@@ -27,6 +27,17 @@ def generate_clusters(ns_clstr: Any = 2, cluster_std=0.04, n_features: int = 2):
     return clstrs, x_f, y_f
 
 
+def get_batch(ns_clstr: Any = 2, cluster_std=0.04, n_features: int = 2):
+    clstrs, x_f, y_f = generate_clusters(ns_clstr, cluster_std, n_features)
+
+    batch = [(clstrs[0].data_points[0], np.array([1, 0])),
+             (clstrs[1].data_points[0], np.array([0, 1])),
+             (clstrs[0].data_points[1], np.array([1, 0])),
+             (clstrs[1].data_points[1], np.array([0, 1])),]
+
+    return batch
+
+
 def plot_blobs(x: ndarray, y: ndarray):
     plt.figure(1)
     plt.clf()
