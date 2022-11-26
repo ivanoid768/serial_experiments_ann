@@ -2,24 +2,43 @@ from typing import List, Any
 
 import numpy as np
 from numpy import ndarray
+from scipy.special import expit
 
 from datapoint_generation import get_batch
 
 
+def sigmoid(x: ndarray):
+    # return 1 / (1 + np.exp(-x))
+    # return np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
+    return expit(x)
+
+
+def sigmoid_d(x_e: ndarray):
+    return (np.exp(-x_e)) / (1 + np.exp(-x_e)) ** 2
+
+
+def swish(x: ndarray):
+    return x * sigmoid(x)
+
+
+def swish_d(x: ndarray):
+    return sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x))
+
+
 def h_f(x: ndarray):
-    return 1 / (1 + np.exp(-x))
+    return sigmoid(x)
 
 
 def h_df(x_e: ndarray):
-    return (np.exp(-x_e)) / (1 + np.exp(-x_e)) ** 2
+    return sigmoid_d(x_e)
 
 
 def o_f(x: ndarray):
-    return 1 / (1 + np.exp(-x))
+    return sigmoid(x)
 
 
 def o_df(x_e: ndarray):
-    return (np.exp(-x_e)) / (1 + np.exp(-x_e)) ** 2
+    return sigmoid_d(x_e)
 
 
 def mse(tar: ndarray, out: ndarray):
@@ -61,6 +80,9 @@ class MLP:
 
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
+
+    def wta_train(self):
+        pass
 
     def test(self, batch: List[Any]):
         error = 0
