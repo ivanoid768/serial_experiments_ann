@@ -22,7 +22,7 @@ def swish(x: ndarray):
 
 
 def swish_d(x: ndarray):
-    return sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x))
+    return swish(x) + sigmoid(x) * (1 - swish(x))
 
 
 def relu(x: ndarray):
@@ -38,11 +38,11 @@ def relu_d(x: ndarray):
 
 
 def h_f(x: ndarray):
-    return relu(x)
+    return swish(x)
 
 
 def h_df(x_e: ndarray):
-    return relu_d(x_e)
+    return swish_d(x_e)
 
 
 def o_f(x: ndarray):
