@@ -73,12 +73,15 @@ class MLP:
 
         self.l_h = h_f(np.dot(self.l_inp, self.w_ih))
 
-        winner_idx_arr = np.argsort(self.l_h)[::-1]
-        self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
+        self.lateral_inhibition()
 
         self.l_o = o_f(np.dot(self.l_h, self.w_ho))
         self.get_insurance()
         return self.l_o
+
+    def lateral_inhibition(self):
+        winner_idx_arr = np.argsort(self.l_h)[::-1]
+        self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
 
     def train(self, batch: List[Any], epoch_cnt: int = 100, lr0: float = 0.01,
               push_delta: float = 0.01,
@@ -110,14 +113,28 @@ class MLP:
         l_h = self.l_h
 
         winner_idx_arr = np.argsort(l_h)[::-1]
-        pull_idx_arr = winner_idx_arr[0:self.winner_cnt]
-        push_idx_arr = winner_idx_arr[self.winner_cnt:self.winner_cnt]
+        pull_idx_arr = winner_idx_arr[0:int(self.winner_cnt/2)]
+        push_idx_arr = winner_idx_arr[int(self.winner_cnt/2):int(self.winner_cnt/2)*2]
 
         for pull_idx in pull_idx_arr:
-            dw_ih.T[pull_idx] += wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
+            u_w_ih = wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
+
+            uw_norm = np.linalg.norm(u_w_ih)
+            if uw_norm == 0:
+                continue
+
+            u_w_ih = u_w_ih / uw_norm
+            dw_ih.T[pull_idx] += u_w_ih
 
         for push_idx in push_idx_arr:
-            dw_ih.T[push_idx] += wta_lambda * (self.l_inp - self.w_ih.T[push_idx] * l_h[push_idx]) * -push_delta
+            u_w_ih = wta_lambda * (self.l_inp - self.w_ih.T[push_idx] * l_h[push_idx]) * -push_delta
+
+            uw_norm = np.linalg.norm(u_w_ih)
+            if uw_norm == 0:
+                continue
+
+            u_w_ih = u_w_ih / uw_norm
+            dw_ih.T[push_idx] += u_w_ih
 
         # winner_idx_arr = np.argsort(self.l_o)[::-1]
         # pull_idx = winner_idx_arr[0]
@@ -148,11 +165,11 @@ class MLP:
 
 
 if __name__ == '__main__':
-    mlp = MLP(winner_cnt=4)
+    mlp = MLP(winner_cnt=16)
     batch = get_batch(ns_clstr=[2, 2], cluster_std=0.04, n_features=mlp.l_inp.size)
     mse_start = mlp.test(batch)
 
-    mlp.train(batch=batch, epoch_cnt=100, lr0=0.04, push_delta=0.4, wta_lambda=0.01)
+    mlp.train(batch=batch, epoch_cnt=100, lr0=0.04, push_delta=0.4, wta_lambda=0.0001)
     mse_trained = mlp.test(batch)
 
     print(f'{mse_start / mse_trained if mse_trained > 0 else 0}')
