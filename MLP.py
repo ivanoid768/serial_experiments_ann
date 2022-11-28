@@ -25,12 +25,24 @@ def swish_d(x: ndarray):
     return sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x))
 
 
+def relu(x: ndarray):
+    x[np.where(x < 0)] = 0
+    return x
+
+
+def relu_d(x: ndarray):
+    x[np.where(x >= 0)] = 1
+    x[np.where(x < 0)] = 0
+
+    return x
+
+
 def h_f(x: ndarray):
-    return sigmoid(x)
+    return relu(x)
 
 
 def h_df(x_e: ndarray):
-    return sigmoid_d(x_e)
+    return relu_d(x_e)
 
 
 def o_f(x: ndarray):
@@ -61,8 +73,8 @@ class MLP:
 
         self.l_h = h_f(np.dot(self.l_inp, self.w_ih))
 
-        winner_idx_arr = np.argsort(self.l_h)[::-1]
-        self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
+        # winner_idx_arr = np.argsort(self.l_h)[::-1]
+        # self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
 
         self.l_o = o_f(np.dot(self.l_h, self.w_ho))
 
