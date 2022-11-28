@@ -46,7 +46,9 @@ def mse(tar: ndarray, out: ndarray):
 
 
 class MLP:
-    def __init__(self):
+    def __init__(self, winner_cnt: int = 1):
+        self.winner_cnt = winner_cnt
+
         self.l_inp = np.zeros(128)
         self.l_h = np.zeros(256)
         self.l_o = np.zeros(2)
@@ -58,6 +60,10 @@ class MLP:
         self.l_inp = np.copy(inp)
 
         self.l_h = h_f(np.dot(self.l_inp, self.w_ih))
+
+        winner_idx_arr = np.argsort(self.l_h)[::-1]
+        self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
+
         self.l_o = o_f(np.dot(self.l_h, self.w_ho))
 
         return self.l_o
@@ -80,7 +86,7 @@ class MLP:
                 h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
                 dw_ih += np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
-                self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
+                # self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
 
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
@@ -118,7 +124,7 @@ class MLP:
 
 
 if __name__ == '__main__':
-    mlp = MLP()
+    mlp = MLP(winner_cnt=4)
     batch = get_batch(ns_clstr=[2, 2], cluster_std=0.04, n_features=mlp.l_inp.size)
     mse_start = mlp.test(batch)
 
