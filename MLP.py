@@ -62,7 +62,9 @@ class MLP:
 
         return self.l_o
 
-    def train(self, batch: List[Any], epoch_cnt: int = 100, lr0: float = 0.01):
+    def train(self, batch: List[Any], epoch_cnt: int = 100, lr0: float = 0.01,
+              push_delta: float = 0.01,
+              wta_lambda: float = 0.1, ):
         for epoch_idx in range(epoch_cnt):
             lr = (epoch_cnt - epoch_idx) * lr0
 
@@ -78,11 +80,29 @@ class MLP:
                 h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
                 dw_ih += np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
+                self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
+
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
 
-    def wta_train(self):
-        pass
+    def wta_train(self, dw_ih: ndarray, dw_ho: ndarray, push_delta: float, wta_lambda: float):
+        l_h = np.dot(self.l_inp, self.w_ih)
+
+        winner_idx_arr = np.argsort(l_h)[::-1]
+        pull_idx = winner_idx_arr[0]
+        push_idx = winner_idx_arr[1]
+
+        dw_ih.T[pull_idx] += wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
+        dw_ih.T[push_idx] += wta_lambda * (self.l_inp - self.w_ih.T[push_idx] * l_h[push_idx]) * -push_delta
+
+        # winner_idx_arr = np.argsort(self.l_o)[::-1]
+        # pull_idx = winner_idx_arr[0]
+        # push_idx = winner_idx_arr[1]
+        #
+        # dw_ho.T[pull_idx] += wta_lambda * (self.l_h - self.w_ho.T[pull_idx] * self.l_o[pull_idx])
+        # dw_ho.T[push_idx] += wta_lambda * (self.l_h - self.w_ho.T[push_idx] * self.l_o[push_idx]) * -push_delta
+
+        return dw_ih, dw_ho
 
     def test(self, batch: List[Any]):
         error = 0
@@ -102,7 +122,7 @@ if __name__ == '__main__':
     batch = get_batch(ns_clstr=[2, 2], cluster_std=0.04, n_features=mlp.l_inp.size)
     mse_start = mlp.test(batch)
 
-    mlp.train(batch=batch, epoch_cnt=100, lr0=0.04)
+    mlp.train(batch=batch, epoch_cnt=100, lr0=0.04, push_delta=0.4, wta_lambda=0.01)
     mse_trained = mlp.test(batch)
 
     print(f'{mse_start / mse_trained if mse_trained > 0 else 0}')
