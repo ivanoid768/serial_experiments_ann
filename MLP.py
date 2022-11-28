@@ -38,11 +38,11 @@ def relu_d(x: ndarray):
 
 
 def h_f(x: ndarray):
-    return swish(x)
+    return x
 
 
 def h_df(x_e: ndarray):
-    return swish_d(x_e)
+    return 1
 
 
 def o_f(x: ndarray):
@@ -73,11 +73,11 @@ class MLP:
 
         self.l_h = h_f(np.dot(self.l_inp, self.w_ih))
 
-        # winner_idx_arr = np.argsort(self.l_h)[::-1]
-        # self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
+        winner_idx_arr = np.argsort(self.l_h)[::-1]
+        self.l_h[winner_idx_arr[self.winner_cnt:]] = 0
 
         self.l_o = o_f(np.dot(self.l_h, self.w_ho))
-
+        self.get_insurance()
         return self.l_o
 
     def train(self, batch: List[Any], epoch_cnt: int = 100, lr0: float = 0.01,
@@ -98,20 +98,26 @@ class MLP:
                 h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
                 dw_ih += np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
-                # self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
+                self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
 
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
 
+            self.get_insurance()
+
     def wta_train(self, dw_ih: ndarray, dw_ho: ndarray, push_delta: float, wta_lambda: float):
-        l_h = np.dot(self.l_inp, self.w_ih)
+        # l_h = np.dot(self.l_inp, self.w_ih)
+        l_h = self.l_h
 
         winner_idx_arr = np.argsort(l_h)[::-1]
-        pull_idx = winner_idx_arr[0]
-        push_idx = winner_idx_arr[1]
+        pull_idx_arr = winner_idx_arr[0:self.winner_cnt]
+        push_idx_arr = winner_idx_arr[self.winner_cnt:self.winner_cnt]
 
-        dw_ih.T[pull_idx] += wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
-        dw_ih.T[push_idx] += wta_lambda * (self.l_inp - self.w_ih.T[push_idx] * l_h[push_idx]) * -push_delta
+        for pull_idx in pull_idx_arr:
+            dw_ih.T[pull_idx] += wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
+
+        for push_idx in push_idx_arr:
+            dw_ih.T[push_idx] += wta_lambda * (self.l_inp - self.w_ih.T[push_idx] * l_h[push_idx]) * -push_delta
 
         # winner_idx_arr = np.argsort(self.l_o)[::-1]
         # pull_idx = winner_idx_arr[0]
@@ -133,6 +139,12 @@ class MLP:
         print(f'mse: {error}')
 
         return error
+
+    def get_insurance(self):
+        insurance = np.sum(np.abs(self.l_h[np.newaxis].T - self.l_h))
+        print(f'{insurance=}')
+
+        return insurance
 
 
 if __name__ == '__main__':
