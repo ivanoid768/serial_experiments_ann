@@ -97,7 +97,14 @@ class MLP:
 
             dw_ih: ndarray = np.zeros(self.w_ih.shape)
             dw_ho: ndarray = np.zeros(self.w_ho.shape)
+            for inp, target_out in batch:
+                self.infer_one(inp)
+                self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
 
+            self.update_weights(batch, dw_ho, dw_ih, lr)
+
+            dw_ih: ndarray = np.zeros(self.w_ih.shape)
+            dw_ho: ndarray = np.zeros(self.w_ho.shape)
             for inp, target_out in batch:
                 out = self.infer_one(inp)
 
@@ -112,18 +119,20 @@ class MLP:
                 #     dw_ih += uw_ih / uw_norm
 
                 dw_ih += uw_ih
-                self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
 
                 avg_error += mse(target_out, out)
 
-            self.w_ih -= lr * (dw_ih / len(batch))
-            self.w_ho -= lr * (dw_ho / len(batch))
+            self.update_weights(batch, dw_ho, dw_ih, lr)
 
-            # self.get_avg_confidence()
+            self.get_avg_confidence()
 
             avg_error /= len(batch)
             print(f'{epoch_idx=} {avg_error=}')
             avg_error = 0
+
+    def update_weights(self, batch, dw_ho, dw_ih, lr):
+        self.w_ih -= lr * (dw_ih / len(batch))
+        self.w_ho -= lr * (dw_ho / len(batch))
 
     def wta_train(self, dw_ih: ndarray, dw_ho: ndarray, push_delta: float, wta_lambda: float):
         l_h = np.dot(self.l_inp, self.w_ih)
