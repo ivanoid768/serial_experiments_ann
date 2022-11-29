@@ -95,13 +95,13 @@ class MLP:
         for epoch_idx in range(epoch_cnt):
             lr = (epoch_cnt - epoch_idx) * lr0
 
-            dw_ih: ndarray = np.zeros(self.w_ih.shape)
-            dw_ho: ndarray = np.zeros(self.w_ho.shape)
-            for inp, target_out in batch:
-                self.infer_one(inp)
-                self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
-
-            self.update_weights(batch, dw_ho, dw_ih, lr)
+            # dw_ih: ndarray = np.zeros(self.w_ih.shape)
+            # dw_ho: ndarray = np.zeros(self.w_ho.shape)
+            # for inp, target_out in batch:
+            #     self.infer_one(inp)
+            #     # self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
+            #
+            # self.update_weights(batch, dw_ho, dw_ih, lr)
 
             dw_ih: ndarray = np.zeros(self.w_ih.shape)
             dw_ho: ndarray = np.zeros(self.w_ho.shape)
@@ -114,9 +114,9 @@ class MLP:
                 h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
                 uw_ih = np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
-                # uw_norm = np.linalg.norm(uw_ih)
-                # if uw_norm != 0:
-                #     dw_ih += uw_ih / uw_norm
+                uw_norm = np.linalg.norm(uw_ih, axis=0)
+                if np.where(uw_norm != 0)[0].size >= uw_ih.shape[1]:
+                    dw_ih += uw_ih / uw_norm
 
                 dw_ih += uw_ih
 
@@ -128,6 +128,10 @@ class MLP:
 
             avg_error /= len(batch)
             print(f'{epoch_idx=} {avg_error=}')
+
+            if avg_error == 0.0:
+                break
+
             avg_error = 0
 
     def update_weights(self, batch, dw_ho, dw_ih, lr):
