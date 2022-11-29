@@ -91,6 +91,7 @@ class MLP:
               wta_lambda: float = 0.1, ):
         self.avg_confidence = []
 
+        avg_error = 0
         for epoch_idx in range(epoch_cnt):
             lr = (epoch_cnt - epoch_idx) * lr0
 
@@ -113,10 +114,16 @@ class MLP:
                 dw_ih += uw_ih
                 self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
 
+                avg_error += mse(target_out, out)
+
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
 
-            self.get_avg_confidence()
+            # self.get_avg_confidence()
+
+            avg_error /= len(batch)
+            print(f'{epoch_idx=} {avg_error=}')
+            avg_error = 0
 
     def wta_train(self, dw_ih: ndarray, dw_ho: ndarray, push_delta: float, wta_lambda: float):
         l_h = np.dot(self.l_inp, self.w_ih)
@@ -124,7 +131,7 @@ class MLP:
 
         winner_idx_arr = np.argsort(l_h)[::-1]
         pull_idx_arr = winner_idx_arr[0:1]
-        push_idx_arr = winner_idx_arr[1:1+int(self.winner_cnt/2)]
+        push_idx_arr = winner_idx_arr[1:1 + int(self.winner_cnt / 2)]
 
         for pull_idx in pull_idx_arr:
             u_w_ih = wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
