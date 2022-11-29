@@ -76,7 +76,7 @@ class MLP:
         self.lateral_inhibition()
 
         self.l_o = o_f(np.dot(self.l_h, self.w_ho))
-        self.get_insurance()
+        self.get_confidence()
         return self.l_o
 
     def lateral_inhibition(self):
@@ -99,11 +99,11 @@ class MLP:
                 dw_ho += np.dot(self.l_h[np.newaxis].T, o_e[np.newaxis])
 
                 h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
-                uw_ih = np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
+                dw_ih += np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
-                uw_norm = np.linalg.norm(uw_ih)
-                if uw_norm != 0:
-                    dw_ih += uw_ih / uw_norm
+                # uw_norm = np.linalg.norm(uw_ih)
+                # if uw_norm != 0:
+                #     dw_ih += uw_ih / uw_norm
 
                 # dw_ih += uw_ih
                 self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
@@ -111,15 +111,15 @@ class MLP:
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
 
-            self.get_insurance()
+            self.get_confidence()
 
     def wta_train(self, dw_ih: ndarray, dw_ho: ndarray, push_delta: float, wta_lambda: float):
         l_h = np.dot(self.l_inp, self.w_ih)
         # l_h = self.l_h
 
         winner_idx_arr = np.argsort(l_h)[::-1]
-        pull_idx_arr = winner_idx_arr[0:int(self.winner_cnt/2)]
-        push_idx_arr = winner_idx_arr[int(self.winner_cnt/2):int(self.winner_cnt/2)*2]
+        pull_idx_arr = winner_idx_arr[0:1]
+        push_idx_arr = winner_idx_arr[1:]
 
         for pull_idx in pull_idx_arr:
             u_w_ih = wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
@@ -162,19 +162,23 @@ class MLP:
 
         return error
 
-    def get_insurance(self):
-        insurance = np.sum(np.abs(self.l_h[np.newaxis].T - self.l_h))
-        print(f'{insurance=}')
+    def get_confidence(self):
+        confidence = np.sum(np.abs(self.l_h[np.newaxis].T - self.l_h))
+        print(f'{confidence=}')
 
-        return insurance
+        return confidence
 
 
 if __name__ == '__main__':
+    cls_size = 5
+
     mlp = MLP(winner_cnt=16)
-    train_batch, test_batch = generate_batch(ns_clstr=[3, 3], cluster_std=0.04, n_features=mlp.l_inp.size)
-    mse_start = mlp.test(train_batch)
+    train_batch, test_batch = generate_batch(ns_clstr=[cls_size, cls_size], cluster_std=0.04, n_features=mlp.l_inp.size)
+
+    mse_start = mlp.test(test_batch)
 
     mlp.train(batch=train_batch, epoch_cnt=100, lr0=0.04, push_delta=0.4, wta_lambda=0.01)
+
     mse_trained = mlp.test(test_batch)
 
     print(f'{mse_start / mse_trained if mse_trained > 0 else 0}')
