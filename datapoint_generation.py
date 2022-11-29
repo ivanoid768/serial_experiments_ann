@@ -34,13 +34,13 @@ def generate_batch(ns_clstr: Any = 2, cluster_std=0.04, n_features: int = 2):
                                    n_features=n_features,
                                    return_centers=True, )
 
-    batch: List[Tuple[ndarray, int]] = []
+    batch: List[Tuple[ndarray, ndarray]] = []
     for label_idx, label in enumerate(y_f):
         datapoint = x_f[label_idx]
-        batch.append((datapoint, label))
+        batch.append((datapoint, np.array([0, 1]) if label == 0 else np.array([1, 0])))
 
-    train_batch = batch[:int(len(batch)/100*70)]
-    test_batch = batch[int(len(batch)/100*70):]
+    train_batch = batch[:int(len(batch) / 100 * 70)]
+    test_batch = batch[int(len(batch) / 100 * 70):]
 
     return train_batch, test_batch
 
