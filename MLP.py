@@ -68,6 +68,9 @@ class MLP:
         self.w_ih: ndarray = np.random.rand(self.l_inp.size, self.l_h.size) * 0.001
         self.w_ho: ndarray = np.random.rand(self.l_h.size, self.l_o.size) * 0.001
 
+        self.avg_confidence = []
+        self.prev_confidence = 0
+
     def infer_one(self, inp: ndarray):
         self.l_inp = np.copy(inp)
 
@@ -86,6 +89,8 @@ class MLP:
     def train(self, batch: List[Any], epoch_cnt: int = 100, lr0: float = 0.01,
               push_delta: float = 0.01,
               wta_lambda: float = 0.1, ):
+        self.avg_confidence = []
+
         for epoch_idx in range(epoch_cnt):
             lr = (epoch_cnt - epoch_idx) * lr0
 
@@ -111,7 +116,7 @@ class MLP:
             self.w_ih -= lr * (dw_ih / len(batch))
             self.w_ho -= lr * (dw_ho / len(batch))
 
-            self.get_confidence()
+            self.get_avg_confidence()
 
     def wta_train(self, dw_ih: ndarray, dw_ho: ndarray, push_delta: float, wta_lambda: float):
         l_h = np.dot(self.l_inp, self.w_ih)
@@ -164,9 +169,18 @@ class MLP:
 
     def get_confidence(self):
         confidence = np.sum(np.abs(self.l_h[np.newaxis].T - self.l_h))
-        print(f'{confidence=}')
+        # print(f'{confidence=}
+        self.avg_confidence.append(confidence)
 
         return confidence
+
+    def get_avg_confidence(self):
+        avg_confidence = np.mean(np.array(self.avg_confidence))
+        self.avg_confidence = []
+
+        print(f'{avg_confidence=} {(avg_confidence - self.prev_confidence > 0)=}')
+        self.prev_confidence = avg_confidence
+        return avg_confidence
 
 
 if __name__ == '__main__':
