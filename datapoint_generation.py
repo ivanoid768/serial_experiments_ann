@@ -1,4 +1,4 @@
-from typing import NamedTuple, List, Any
+from typing import NamedTuple, List, Any, Tuple
 
 import numpy as np
 from numpy import ndarray
@@ -27,15 +27,22 @@ def generate_clusters(ns_clstr: Any = 2, cluster_std=0.04, n_features: int = 2):
     return clstrs, x_f, y_f
 
 
-def get_batch(ns_clstr: Any = 2, cluster_std=0.04, n_features: int = 2):
-    clstrs, x_f, y_f = generate_clusters(ns_clstr, cluster_std, n_features)
+def generate_batch(ns_clstr: Any = 2, cluster_std=0.04, n_features: int = 2):
+    x_f, y_f, centers = make_blobs(n_samples=ns_clstr,
+                                   center_box=(0, 1),
+                                   cluster_std=cluster_std,
+                                   n_features=n_features,
+                                   return_centers=True, )
 
-    batch = [(clstrs[0].data_points[0], np.array([1, 0])),
-             (clstrs[1].data_points[0], np.array([0, 1])),
-             (clstrs[0].data_points[1], np.array([1, 0])),
-             (clstrs[1].data_points[1], np.array([0, 1])),]
+    batch: List[Tuple[ndarray, int]] = []
+    for label_idx, label in enumerate(y_f):
+        datapoint = x_f[label_idx]
+        batch.append((datapoint, label))
 
-    return batch
+    train_batch = batch[:int(len(batch)/100*70)]
+    test_batch = batch[int(len(batch)/100*70):]
+
+    return train_batch, test_batch
 
 
 def plot_blobs(x: ndarray, y: ndarray):
@@ -47,7 +54,12 @@ def plot_blobs(x: ndarray, y: ndarray):
 
 
 if __name__ == '__main__':
-    clusters, x, y = generate_clusters(ns_clstr=[2, 2, 1], cluster_std=0.04, n_features=2)
-    print(f'{clusters[2].center=}')
+    # clusters, x, y = generate_clusters(ns_clstr=[2, 2, 1], cluster_std=0.04, n_features=2)
+    # print(f'{clusters[2].center=}')
 
-    plot_blobs(x, y)
+    cls_size = 3
+    train_batch, test_batch = generate_batch(ns_clstr=[cls_size, cls_size], cluster_std=0.04, n_features=2)
+    print(f'{len(train_batch)=}')
+    print(f'{len(test_batch)=} {len(train_batch) + len(test_batch)=}')
+
+    # plot_blobs(x, y)

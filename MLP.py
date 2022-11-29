@@ -4,7 +4,7 @@ import numpy as np
 from numpy import ndarray
 from scipy.special import expit
 
-from datapoint_generation import get_batch
+from datapoint_generation import generate_batch
 
 
 def sigmoid(x: ndarray):
@@ -171,10 +171,10 @@ class MLP:
 
 if __name__ == '__main__':
     mlp = MLP(winner_cnt=16)
-    batch = get_batch(ns_clstr=[2, 2], cluster_std=0.04, n_features=mlp.l_inp.size)
-    mse_start = mlp.test(batch)
+    train_batch, test_batch = generate_batch(ns_clstr=[3, 3], cluster_std=0.04, n_features=mlp.l_inp.size)
+    mse_start = mlp.test(train_batch)
 
-    mlp.train(batch=batch, epoch_cnt=100, lr0=0.04, push_delta=0.4, wta_lambda=0.01)
-    mse_trained = mlp.test(batch)
+    mlp.train(batch=train_batch, epoch_cnt=100, lr0=0.04, push_delta=0.4, wta_lambda=0.01)
+    mse_trained = mlp.test(test_batch)
 
     print(f'{mse_start / mse_trained if mse_trained > 0 else 0}')
