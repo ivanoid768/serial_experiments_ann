@@ -99,13 +99,13 @@ class MLP:
                 dw_ho += np.dot(self.l_h[np.newaxis].T, o_e[np.newaxis])
 
                 h_e = np.dot(o_e, self.w_ho.T) * h_df(self.l_h)
-                dw_ih += np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
+                uw_ih = np.dot(self.l_inp[np.newaxis].T, h_e[np.newaxis])
 
                 # uw_norm = np.linalg.norm(uw_ih)
                 # if uw_norm != 0:
                 #     dw_ih += uw_ih / uw_norm
 
-                # dw_ih += uw_ih
+                dw_ih += uw_ih
                 self.wta_train(dw_ih, dw_ho, push_delta, wta_lambda)
 
             self.w_ih -= lr * (dw_ih / len(batch))
@@ -119,7 +119,7 @@ class MLP:
 
         winner_idx_arr = np.argsort(l_h)[::-1]
         pull_idx_arr = winner_idx_arr[0:1]
-        push_idx_arr = winner_idx_arr[1:]
+        push_idx_arr = winner_idx_arr[1:1+int(self.winner_cnt/2)]
 
         for pull_idx in pull_idx_arr:
             u_w_ih = wta_lambda * (self.l_inp - self.w_ih.T[pull_idx] * l_h[pull_idx])
