@@ -127,19 +127,50 @@ class MLP:
     def train_one(self, inp: ndarray, out: ndarray, epoch_cnt: int = 100, lr0: float = 0.01, push_delta: float = 0.04):
         l_o = self.infer_forward(inp)
         l_inp = self.infer_backward(out)
+
         start_err = self.loss(l_o, out, inp, l_inp)
         print(f'{start_err=}')
 
-        dw_ho = self.train_o(push_delta)
-        dw_ih, dw_ho_2 = self.train_h(push_delta)
-        dw_ih_2 = self.train_inp(push_delta)
+        prev_err = start_err
+        for epoch_idx in range(epoch_cnt):
+            # infer
+            l_o = self.infer_forward(inp)
+            l_inp = self.infer_backward(out)
 
-        # update weights
-        self.w_ih += -lr0 * (dw_ih + dw_ih_2.T) / 2
-        self.w_ho += -lr0 * (dw_ho + dw_ho_2.T) / 2
+            for iter_idx in range(10):
+                l_o = self.infer_forward(self.l_inp)
+                l_inp = self.infer_backward(self.l_o)
+
+                err = self.loss(l_o, out, inp, l_inp)
+                print(f'{iter_idx=} {epoch_idx=} {err=} {err - prev_err=}')
+
+                if err - prev_err > 0:
+                    break
+
+                prev_err = err
+
+            err = self.loss(l_o, out, inp, l_inp)
+            print(f'{epoch_idx=} {err=} {err - prev_err=}')
+
+            # if err - prev_err > 0:
+            #     break
+
+            prev_err = err
+
+            # train
+            dw_ho = self.train_o(push_delta)
+            dw_ih, dw_ho_2 = self.train_h(push_delta)
+            dw_ih_2 = self.train_inp(push_delta)
+
+            # update weights
+            # lr = (epoch_cnt - epoch_idx) * lr0
+            lr = lr0
+            self.w_ih += -lr * (dw_ih + dw_ih_2.T) / 2
+            self.w_ho += -lr * (dw_ho + dw_ho_2.T) / 2
 
         l_o = self.infer_forward(inp)
         l_inp = self.infer_backward(out)
+
         err = self.loss(l_o, out, inp, l_inp)
         print(f'{err=} {err - start_err=}')
 
